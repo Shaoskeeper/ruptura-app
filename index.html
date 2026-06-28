@@ -383,8 +383,25 @@ async function abrirCamera() {
       toast('❌ Biblioteca não carregou, recarregue a página'); fecharCamera(); return;
     }
     codeReader = new ZXing.BrowserMultiFormatReader();
-    const devices = await codeReader.listVideoInputDevices();
-    const back = devices.find(d => /back|rear|environment/i.test(d.label)) || devices[devices.length-1];
+    // Primeiro, tente usar a API do codeReader (mais confiável para ZXing)
+    let devices = [];
+    if (typeof codeReader.listVideoInputDevices === 'function') {
+      try {
+        devices = await codeReader.listVideoInputDevices();
+      } catch (_) {
+        devices = [];
+      }
+    }
+    // Se não obteve dispositivos via codeReader, tente navigator.mediaDevices.enumerateDevices() como fallback
+    if (!devices || devices.length === 0) {
+      try {
+        const all = await navigator.mediaDevices.enumerateDevices();
+        devices = all.filter(d => d.kind === 'videoinput').map(d => ({ deviceId: d.deviceId, label: d.label || '' }));
+      } catch (_) {
+        devices = [];
+      }
+    }
+    const back = (devices && devices.find && devices.find(d => /back|rear|environment/i.test(d.label))) || (devices && devices.length ? devices[devices.length-1] : undefined);
     const deviceId = back ? back.deviceId : undefined;
     await codeReader.decodeFromVideoDevice(deviceId, 'video', (result, err) => {
       if (result) {
