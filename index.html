@@ -377,9 +377,9 @@ async function abrirCamera() {
   document.getElementById('cam-overlay').classList.add('open');
   document.getElementById('cam-status').textContent = '';
   try {
-    // ZXing 0.18.6 via unpkg expoe como ZXingLibrary ou window diretamente
-    const ZXing = window.ZXingLibrary || window;
-    if (typeof ZXing.BrowserMultiFormatReader === 'undefined') {
+    // ZXing 0.18.6 via unpkg expõe como window.ZXing ou window.ZXingLibrary
+    const ZXing = window.ZXing || window.ZXingLibrary;
+    if (!ZXing || !ZXing.BrowserMultiFormatReader) {
       toast('❌ Biblioteca não carregou, recarregue a página'); fecharCamera(); return;
     }
     codeReader = new ZXing.BrowserMultiFormatReader();
