@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#1a1a2e" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Ruptura+" />
+  <link rel="manifest" href="manifest.json" />
+  <title>Ruptura+</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/@zxing/library@0.18.6/umd/index.min.js"></script>
+  <style>
+    :root {
+      --bg:#0f0f1a; --surface:#1a1a2e; --surface2:#22223a; --border:#2e2e4a;
+      --accent-r:#ff4d6d; --accent-v:#f59e0b; --accent-ok:#10b981;
+      --text:#e8e8f0; --text-muted:#7878a0;
+      --radius:12px; --font:'Inter',sans-serif; --mono:'JetBrains Mono',monospace;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);overflow-x:hidden}
+    #app{display:flex;flex-direction:column;min-height:100dvh}
+    header{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 16px 12px;
+      display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+    .logo{display:flex;align-items:center;gap:10px}
+    .logo-icon{width:34px;height:34px;border-radius:8px;
+      background:linear-gradient(135deg,var(--accent-r),#c0392b);
+      display:flex;align-items:center;justify-content:center;font-size:18px}
+    .logo-text{font-size:18px;font-weight:700;letter-spacing:-.5px}
+    .logo-text span{color:var(--accent-r)}
+    .header-count{background:var(--surface2);border:1px solid var(--border);
+      border-radius:20px;padding:4px 12px;font-size:13px;color:var(--text-muted)}
+    .header-count strong{color:var(--text)}
+    main{flex:1;padding:16px;display:flex;flex-direction:column;gap:16px}
+    .tabs{display:grid;grid-template-columns:1fr 1fr 1fr;background:var(--surface);
+      border-radius:var(--radius);padding:4px;gap:4px}
+    .tab{border:none;background:transparent;color:var(--text-muted);padding:9px 6px;
+      border-radius:8px;font-family:var(--font);font-size:13px;font-weight:500;cursor:pointer;transition:all .2s;
+      display:flex;align-items:center;justify-content:center;gap:5px}
+    .tab.active{background:var(--surface2);color:var(--text)}
+    .panel{display:none;flex-direction:column;gap:14px}
+    .panel.active{display:flex}
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+    .card-title{font-size:13px;font-weight:600;color:var(--text-muted);
+      text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px}
+    .field{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+    .field:last-child{margin-bottom:0}
+    label{font-size:13px;font-weight:500;color:var(--text-muted)}
+    input,select{background:var(--bg);border:1px solid var(--border);border-radius:8px;
+      color:var(--text);font-family:var(--font);font-size:15px;padding:11px 13px;width:100%;
+      transition:border-color .2s;appearance:none}
+    input:focus,select:focus{outline:none;border-color:var(--accent-r)}
+    input::placeholder{color:var(--text-muted)}
+    .tipo-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .tipo-btn{border:2px solid var(--border);background:var(--bg);border-radius:10px;
+      padding:14px 10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;
+      transition:all .2s;font-family:var(--font)}
+    .tipo-btn .tipo-emoji{font-size:26px}
+    .tipo-btn .tipo-label{font-size:13px;font-weight:600;color:var(--text-muted)}
+    .tipo-btn .tipo-desc{font-size:11px;color:var(--text-muted);text-align:center;line-height:1.4}
+    .tipo-btn.selected-ruptura{border-color:var(--accent-r);background:rgba(255,77,109,.08)}
+    .tipo-btn.selected-ruptura .tipo-label{color:var(--accent-r)}
+    .tipo-btn.selected-virtual{border-color:var(--accent-v);background:rgba(245,158,11,.08)}
+    .tipo-btn.selected-virtual .tipo-label{color:var(--accent-v)}
+    .ean-row{display:flex;gap:8px}
+    .ean-row input{flex:1;font-family:var(--mono);font-size:15px}
+    .btn-cam{background:var(--accent-r);border:none;border-radius:8px;color:#fff;
+      font-size:22px;padding:0 16px;cursor:pointer;flex-shrink:0;
+      display:flex;align-items:center;justify-content:center;transition:opacity .2s}
+    .btn-cam:active{opacity:.8}
+    .ean-status{font-size:12px;padding:7px 10px;border-radius:6px;
+      display:none;align-items:center;gap:6px;margin-top:4px;line-height:1.4}
+    .ean-status.loading{display:flex;background:rgba(120,120,160,.15);color:var(--text-muted)}
+    .ean-status.found{display:flex;background:rgba(16,185,129,.12);color:var(--accent-ok)}
+    .ean-status.notfound{display:flex;background:rgba(245,158,11,.12);color:var(--accent-v)}
+    .ean-status.error{display:flex;background:rgba(255,77,109,.12);color:var(--accent-r)}
+    input[type="date"]{color-scheme:dark}
+    input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(.6)}
+    .btn-primary{background:var(--accent-r);border:none;border-radius:10px;color:#fff;
+      font-family:var(--font);font-size:15px;font-weight:600;padding:14px;width:100%;cursor:pointer;
+      transition:opacity .2s;display:flex;align-items:center;justify-content:center;gap:8px}
+    .btn-primary:active{opacity:.8}
+    .btn-ghost{background:transparent;border:1px solid var(--border);border-radius:10px;
+      color:var(--text-muted);font-family:var(--font);font-size:14px;font-weight:500;padding:11px;
+      cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
+    .btn-ghost:active{background:var(--surface2)}
+    .filter-row{display:flex;gap:8px}
+    .filter-row select{flex:1;font-size:14px;padding:9px 12px}
+    .empty-state{text-align:center;padding:40px 20px;color:var(--text-muted);font-size:14px}
+    .empty-state .empty-icon{font-size:40px;margin-bottom:12px}
+    .registro-list{display:flex;flex-direction:column;gap:10px}
+    .registro-card{background:var(--surface);border:1px solid var(--border);
+      border-radius:var(--radius);overflow:hidden}
+    .registro-header{display:flex;align-items:center;justify-content:space-between;
+      padding:10px 14px;border-bottom:1px solid var(--border)}
+    .tag{font-size:11px;font-weight:700;padding:3px 9px;
+      border-radius:20px;text-transform:uppercase;letter-spacing:.6px}
+    .tag-ruptura{background:rgba(255,77,109,.15);color:var(--accent-r)}
+    .tag-virtual{background:rgba(245,158,11,.15);color:var(--accent-v)}
+    .reg-date{font-size:12px;color:var(--text-muted);font-family:var(--mono)}
+    .registro-body{padding:12px 14px}
+    .reg-ean{font-family:var(--mono);font-size:12px;color:var(--text-muted);margin-bottom:4px}
+    .reg-desc{font-size:15px;font-weight:600;margin-bottom:6px}
+    .reg-qty{font-size:13px;color:var(--text-muted)}
+    .reg-qty strong{color:var(--text);font-family:var(--mono)}
+    .btn-del{background:none;border:none;color:var(--text-muted);
+      cursor:pointer;font-size:16px;padding:2px 6px;transition:color .2s}
+    .btn-del:active{color:var(--accent-r)}
+    .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .stat-card{background:var(--surface);border:1px solid var(--border);
+      border-radius:var(--radius);padding:16px;display:flex;flex-direction:column;gap:4px}
+    .stat-val{font-size:28px;font-weight:700;font-family:var(--mono)}
+    .stat-val.r{color:var(--accent-r)} .stat-val.v{color:var(--accent-v)} .stat-val.t{color:var(--accent-ok)}
+    .stat-label{font-size:12px;color:var(--text-muted);font-weight:500}
+    .export-section{display:flex;flex-direction:column;gap:10px}
+    .export-info{font-size:13px;color:var(--text-muted);line-height:1.6;
+      background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px}
+
+    /* CAMERA OVERLAY */
+    #cam-overlay{position:fixed;inset:0;background:#000;z-index:300;display:none;flex-direction:column}
+    #cam-overlay.open{display:flex}
+    #cam-header{display:flex;align-items:center;justify-content:space-between;
+      padding:16px;background:rgba(0,0,0,.65);position:absolute;top:0;left:0;right:0;z-index:10}
+    #cam-title{color:#fff;font-size:15px;font-weight:600}
+    #btn-close-cam{background:rgba(255,255,255,.15);border:none;border-radius:8px;
+      color:#fff;font-size:15px;padding:7px 14px;cursor:pointer;font-family:var(--font)}
+    #video{width:100%;height:100%;object-fit:cover}
+    #scan-ui{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+    .scan-frame{width:80vw;max-width:320px;height:120px;position:relative}
+    .scan-corner{position:absolute;width:24px;height:24px;border-color:var(--accent-r);border-style:solid;border-width:0}
+    .scan-corner.tl{top:0;left:0;border-top-width:3px;border-left-width:3px;border-radius:4px 0 0 0}
+    .scan-corner.tr{top:0;right:0;border-top-width:3px;border-right-width:3px;border-radius:0 4px 0 0}
+    .scan-corner.bl{bottom:0;left:0;border-bottom-width:3px;border-left-width:3px;border-radius:0 0 0 4px}
+    .scan-corner.br{bottom:0;right:0;border-bottom-width:3px;border-right-width:3px;border-radius:0 0 4px 0}
+    .scan-line{position:absolute;left:0;right:0;height:2px;
+      background:linear-gradient(90deg,transparent,var(--accent-r),transparent);
+      animation:scanline 2s ease-in-out infinite}
+    @keyframes scanline{0%,100%{top:10%}50%{top:85%}}
+    #cam-bottom{position:absolute;bottom:0;left:0;right:0;padding:20px 20px 36px;
+      background:linear-gradient(transparent,rgba(0,0,0,.7));text-align:center}
+    #cam-status{color:var(--accent-ok);font-size:14px;font-weight:600;margin-bottom:6px;min-height:20px}
+    #cam-hint{color:rgba(255,255,255,.7);font-size:13px}
+
+    /* TOAST */
+    #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);
+      background:var(--surface2);border:1px solid var(--border);border-radius:10px;
+      padding:12px 20px;font-size:14px;font-weight:500;transition:transform .3s ease;
+      z-index:9999;white-space:nowrap}
+    #toast.show{transform:translateX(-50%) translateY(0)}
+
+    /* DIALOG */
+    #overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);
+      display:none;align-items:flex-end;justify-content:center;z-index:200;padding:16px}
+    #overlay.open{display:flex}
+    .dialog{background:var(--surface);border:1px solid var(--border);
+      border-radius:16px;padding:20px;width:100%;max-width:400px}
+    .dialog h3{font-size:16px;margin-bottom:8px}
+    .dialog p{font-size:14px;color:var(--text-muted);margin-bottom:20px}
+    .dialog-btns{display:flex;gap:10px}
+    .dialog-btns button{flex:1;padding:13px;border-radius:10px;font-size:14px;font-weight:600;
+      cursor:pointer;border:none;font-family:var(--font)}
+    .btn-cancel-d{background:var(--surface2);color:var(--text-muted)}
+    .btn-confirm-d{background:var(--accent-r);color:#fff}
+  </style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="logo">
+      <div class="logo-icon">📦</div>
+      <div class="logo-text">Ruptura<span>+</span></div>
+    </div>
+    <div class="header-count"><strong id="total-count">0</strong> registros</div>
+  </header>
+  <main>
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('form')">➕ Registrar</button>
+      <button class="tab" onclick="switchTab('list')">📋 Lista</button>
+      <button class="tab" onclick="switchTab('stats')">📊 Resumo</button>
+    </div>
+
+    <!-- FORM -->
+    <div class="panel active" id="panel-form">
+      <div class="card">
+        <div class="card-title">Tipo de ocorrência</div>
+        <div class="tipo-grid">
+          <button class="tipo-btn" id="btn-ruptura" onclick="selectTipo('ruptura')">
+            <span class="tipo-emoji">🚫</span>
+            <span class="tipo-label">Ruptura</span>
+            <span class="tipo-desc">Produto não encontrado no estoque</span>
+          </button>
+          <button class="tipo-btn" id="btn-virtual" onclick="selectTipo('virtual')">
+            <span class="tipo-emoji">👻</span>
+            <span class="tipo-label">Estoque Virtual</span>
+            <span class="tipo-desc">Marca estoque mas não está na loja</span>
+          </button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Produto</div>
+        <div class="field">
+          <label>Código EAN</label>
+          <div class="ean-row">
+            <input type="number" id="ean" placeholder="Ex: 7891234567890" inputmode="numeric" oninput="onEanInput(this.value)" />
+            <button class="btn-cam" onclick="abrirCamera()" title="Escanear código de barras">📷</button>
+          </div>
+          <div class="ean-status" id="ean-status"></div>
+        </div>
+        <div class="field">
+          <label>Descrição do produto</label>
+          <input type="text" id="descricao" placeholder="Preenchida automaticamente ou manual" autocomplete="off" />
+        </div>
+        <div class="field">
+          <label>Quantidade</label>
+          <input type="number" id="quantidade" placeholder="0" min="1" inputmode="numeric" />
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Data da ocorrência</div>
+        <div class="field">
+          <input type="date" id="data-ocorrencia" />
+        </div>
+      </div>
+      <button class="btn-primary" onclick="salvarRegistro()">✅ Salvar registro</button>
+    </div>
+
+    <!-- LIST -->
+    <div class="panel" id="panel-list">
+      <div class="filter-row">
+        <select id="filtro-tipo" onchange="renderList()">
+          <option value="">Todos os tipos</option>
+          <option value="ruptura">🚫 Ruptura</option>
+          <option value="virtual">👻 Estoque Virtual</option>
+        </select>
+        <select id="filtro-data" onchange="renderList()">
+          <option value="">Todas as datas</option>
+          <option value="hoje">Hoje</option>
+          <option value="semana">Esta semana</option>
+        </select>
+      </div>
+      <div id="list-container"></div>
+    </div>
+
+    <!-- STATS -->
+    <div class="panel" id="panel-stats">
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-val t" id="stat-total">0</div><div class="stat-label">Total de registros</div></div>
+        <div class="stat-card"><div class="stat-val r" id="stat-ruptura">0</div><div class="stat-label">Rupturas</div></div>
+        <div class="stat-card"><div class="stat-val v" id="stat-virtual">0</div><div class="stat-label">Estoque Virtual</div></div>
+        <div class="stat-card"><div class="stat-val t" id="stat-hoje">0</div><div class="stat-label">Registros hoje</div></div>
+      </div>
+      <div class="export-section">
+        <div class="export-info">📤 Exporta todos os registros para <strong>.csv</strong> — abre direto no Excel ou Google Sheets.</div>
+        <button class="btn-primary" onclick="exportarCSV()">📥 Exportar planilha (.csv)</button>
+        <button class="btn-ghost" onclick="limparTudo()">🗑️ Limpar todos os registros</button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- CÂMERA -->
+<div id="cam-overlay">
+  <div id="cam-header">
+    <span id="cam-title">📷 Aponte para o código de barras</span>
+    <button id="btn-close-cam" onclick="fecharCamera()">✕ Fechar</button>
+  </div>
+  <video id="video" autoplay muted playsinline></video>
+  <div id="scan-ui">
+    <div class="scan-frame">
+      <div class="scan-corner tl"></div><div class="scan-corner tr"></div>
+      <div class="scan-corner bl"></div><div class="scan-corner br"></div>
+      <div class="scan-line"></div>
+    </div>
+  </div>
+  <div id="cam-bottom">
+    <div id="cam-status"></div>
+    <div id="cam-hint">Centralize o código de barras na mira</div>
+  </div>
+</div>
+
+<div id="toast"></div>
+<div id="overlay">
+  <div class="dialog">
+    <h3 id="dialog-title">Confirmar</h3>
+    <p id="dialog-msg">Tem certeza?</p>
+    <div class="dialog-btns">
+      <button class="btn-cancel-d" onclick="closeDialog()">Cancelar</button>
+      <button class="btn-confirm-d" id="dialog-ok">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// STATE
+let registros = JSON.parse(localStorage.getItem('rupturas') || '[]');
+let tipoSelecionado = '';
+let codeReader = null;
+let eanDebounce = null;
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('data-ocorrencia').value = new Date().toISOString().split('T')[0];
+  updateCount(); renderList(); updateStats();
+});
+
+// TABS
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach((t,i) =>
+    t.classList.toggle('active', ['form','list','stats'][i] === tab));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-'+tab).classList.add('active');
+  if (tab==='list') renderList();
+  if (tab==='stats') updateStats();
+}
+
+// TIPO
+function selectTipo(tipo) {
+  tipoSelecionado = tipo;
+  document.getElementById('btn-ruptura').className = 'tipo-btn'+(tipo==='ruptura'?' selected-ruptura':'');
+  document.getElementById('btn-virtual').className = 'tipo-btn'+(tipo==='virtual'?' selected-virtual':'');
+}
+
+// EAN MANUAL
+function onEanInput(val) {
+  clearTimeout(eanDebounce);
+  if (val.trim().length >= 8) {
+    eanDebounce = setTimeout(() => buscarProduto(val.trim()), 900);
+  } else {
+    setEanStatus('','');
+  }
+}
+
+// BUSCA NAS APIs
+async function buscarProduto(ean) {
+  setEanStatus('loading','⏳ Buscando produto...');
+  // 1a tentativa: Open Food Facts
+  try {
+    const r = await fetch('https://world.openfoodfacts.org/api/v0/product/'+ean+'.json');
+    if (r.ok) {
+      const d = await r.json();
+      if (d.status===1 && d.product) {
+        const nome = d.product.product_name_pt || d.product.product_name || d.product.abbreviated_product_name || '';
+        if (nome) { preencherDescricao(nome,'Open Food Facts'); return; }
+      }
+    }
+  } catch(_) {}
+  // 2a tentativa: Cosmos BR
+  try {
+    const r2 = await fetch('https://api.cosmos.bluesoft.com.br/gtins/'+ean, {
+      headers:{'X-Cosmos-Token':'publico'}
+    });
+    if (r2.ok) {
+      const d2 = await r2.json();
+      const nome = d2.description || d2.commercial_name || '';
+      if (nome) { preencherDescricao(nome,'Cosmos BR'); return; }
+    }
+  } catch(_) {}
+  setEanStatus('notfound','⚠️ Produto não encontrado — preencha manualmente');
+}
+
+function preencherDescricao(nome, fonte) {
+  document.getElementById('descricao').value = nome;
+  setEanStatus('found','✓ Encontrado via '+fonte);
+}
+
+function setEanStatus(tipo, msg) {
+  const el = document.getElementById('ean-status');
+  el.className = 'ean-status'+(tipo?' '+tipo:'');
+  el.textContent = msg;
+}
+
+// CAMERA
+async function abrirCamera() {
+  document.getElementById('cam-overlay').classList.add('open');
+  document.getElementById('cam-status').textContent = '';
+  try {
+    // ZXing 0.18.6 via unpkg expoe como ZXingLibrary ou window diretamente
+    const ZXing = window.ZXingLibrary || window;
+    if (typeof ZXing.BrowserMultiFormatReader === 'undefined') {
+      toast('❌ Biblioteca não carregou, recarregue a página'); fecharCamera(); return;
+    }
+    codeReader = new ZXing.BrowserMultiFormatReader();
+    const devices = await ZXing.BrowserMultiFormatReader.listVideoInputDevices();
+    const back = devices.find(d => /back|rear|environment/i.test(d.label)) || devices[devices.length-1];
+    const deviceId = back ? back.deviceId : undefined;
+    await codeReader.decodeFromVideoDevice(deviceId, 'video', (result, err) => {
+      if (result) {
+        const ean = result.getText();
+        document.getElementById('cam-status').textContent = '✓ Lido: ' + ean;
+        if (navigator.vibrate) navigator.vibrate(120);
+        setTimeout(() => {
+          fecharCamera();
+          document.getElementById('ean').value = ean;
+          buscarProduto(ean);
+        }, 600);
+      }
+    });
+  } catch(e) {
+    toast('❌ Câmera: ' + e.message);
+    fecharCamera();
+  }
+}
+
+function fecharCamera() {
+  document.getElementById('cam-overlay').classList.remove('open');
+  if (codeReader) { codeReader.reset(); codeReader = null; }
+}
+
+// SALVAR
+function salvarRegistro() {
+  const ean  = document.getElementById('ean').value.trim();
+  const desc = document.getElementById('descricao').value.trim();
+  const qty  = document.getElementById('quantidade').value.trim();
+  const data = document.getElementById('data-ocorrencia').value;
+  if (!tipoSelecionado) { toast('⚠️ Selecione o tipo'); return; }
+  if (!ean)  { toast('⚠️ Informe o EAN'); return; }
+  if (!desc) { toast('⚠️ Informe a descrição'); return; }
+  if (!qty||qty<1) { toast('⚠️ Informe a quantidade'); return; }
+  if (!data) { toast('⚠️ Informe a data'); return; }
+  registros.unshift({id:Date.now(),tipo:tipoSelecionado,ean,desc,qty:parseInt(qty),data});
+  salvarStorage(); limparForm(); updateCount();
+  toast(tipoSelecionado==='ruptura' ? '🚫 Ruptura registrada!' : '👻 Estoque virtual registrado!');
+}
+
+function limparForm() {
+  ['ean','descricao','quantidade'].forEach(id => document.getElementById(id).value='');
+  document.getElementById('data-ocorrencia').value = new Date().toISOString().split('T')[0];
+  setEanStatus('','');
+  tipoSelecionado='';
+  document.getElementById('btn-ruptura').className='tipo-btn';
+  document.getElementById('btn-virtual').className='tipo-btn';
+}
+
+function salvarStorage() { localStorage.setItem('rupturas',JSON.stringify(registros)); }
+
+// LIST
+function renderList() {
+  const tipo = document.getElementById('filtro-tipo').value;
+  const fd   = document.getElementById('filtro-data').value;
+  const hoje = new Date().toISOString().split('T')[0];
+  const sem  = new Date(Date.now()-7*86400000).toISOString().split('T')[0];
+  let lista = registros.filter(r => {
+    if (tipo && r.tipo!==tipo) return false;
+    if (fd==='hoje' && r.data!==hoje) return false;
+    if (fd==='semana' && r.data<sem) return false;
+    return true;
+  });
+  const c = document.getElementById('list-container');
+  if (!lista.length) {
+    c.innerHTML='<div class="empty-state"><div class="empty-icon">📭</div>Nenhum registro encontrado.<br>Use Registrar para adicionar.</div>';
+    return;
+  }
+  c.innerHTML='<div class="registro-list">'+lista.map(r=>`
+    <div class="registro-card">
+      <div class="registro-header">
+        <span class="tag tag-${r.tipo}">${r.tipo==='ruptura'?'🚫 Ruptura':'👻 Est. Virtual'}</span>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="reg-date">${fmt(r.data)}</span>
+          <button class="btn-del" onclick="confirmarDelete(${r.id})">✕</button>
+        </div>
+      </div>
+      <div class="registro-body">
+        <div class="reg-ean">EAN: ${r.ean}</div>
+        <div class="reg-desc">${r.desc}</div>
+        <div class="reg-qty">Quantidade: <strong>${r.qty}</strong></div>
+      </div>
+    </div>`).join('')+'</div>';
+}
+
+function fmt(d){const[y,m,day]=d.split('-');return `${day}/${m}/${y}`;}
+
+function confirmarDelete(id) {
+  openDialog('Remover','Deseja remover este registro?',()=>{
+    registros=registros.filter(r=>r.id!==id);
+    salvarStorage();updateCount();renderList();updateStats();toast('Registro removido');
+  });
+}
+
+function limparTudo() {
+  if (!registros.length) {toast('Nenhum registro');return;}
+  openDialog('Limpar tudo',`Remover todos os ${registros.length} registros? Não pode ser desfeito.`,()=>{
+    registros=[];salvarStorage();updateCount();renderList();updateStats();toast('Registros removidos');
+  });
+}
+
+function updateStats() {
+  const hoje=new Date().toISOString().split('T')[0];
+  document.getElementById('stat-total').textContent=registros.length;
+  document.getElementById('stat-ruptura').textContent=registros.filter(r=>r.tipo==='ruptura').length;
+  document.getElementById('stat-virtual').textContent=registros.filter(r=>r.tipo==='virtual').length;
+  document.getElementById('stat-hoje').textContent=registros.filter(r=>r.data===hoje).length;
+}
+
+function updateCount(){
+  document.getElementById('total-count').textContent=registros.length;
+  updateStats();
+}
+
+function exportarCSV() {
+  if (!registros.length){toast('Nenhum dado para exportar');return;}
+  const h=['Tipo','EAN','Descrição','Quantidade','Data'];
+  const rows=registros.map(r=>[
+    r.tipo==='ruptura'?'Ruptura':'Estoque Virtual',
+    r.ean,`"${r.desc.replace(/"/g,'""')}"`,r.qty,fmt(r.data)
+  ]);
+  const csv=[h,...rows].map(r=>r.join(';')).join('\n');
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`rupturas_${new Date().toISOString().split('T')[0]}.csv`;
+  a.click();
+  toast('📥 Planilha exportada!');
+}
+
+let toastTimer;
+function toast(msg){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>el.classList.remove('show'),2800);
+}
+
+function openDialog(title,msg,onConfirm){
+  document.getElementById('dialog-title').textContent=title;
+  document.getElementById('dialog-msg').textContent=msg;
+  document.getElementById('dialog-ok').onclick=()=>{closeDialog();onConfirm();};
+  document.getElementById('overlay').classList.add('open');
+}
+function closeDialog(){document.getElementById('overlay').classList.remove('open');}
+document.getElementById('overlay').addEventListener('click',function(e){if(e.target===this)closeDialog();});
+</script>
+</body>
+</html>
